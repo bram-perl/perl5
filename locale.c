@@ -4475,6 +4475,7 @@ Perl_init_i18nl10n(pTHX_ int printwarn)
     const char * const lc_all     = PerlEnv_getenv("LC_ALL");
     const char * const lang       = PerlEnv_getenv("LANG");
     bool setlocale_failure = FALSE;
+    bool skip_setlocale_categories = FALSE;
     unsigned int i;
 
     /* A later getenv() could zap this, so only use here */
@@ -4668,6 +4669,7 @@ Perl_init_i18nl10n(pTHX_ int printwarn)
     for (i= 0; i < trial_locales_count; i++) {
         const char * trial_locale = trial_locales[i].trial_locale;
         setlocale_failure = FALSE;
+        skip_setlocale_categories = FALSE;
 
 #  ifdef LC_ALL
 
@@ -4678,6 +4680,13 @@ Perl_init_i18nl10n(pTHX_ int printwarn)
         DEBUG_LOCALE_INIT(LC_ALL_INDEX_, trial_locale, sl_result[LC_ALL_INDEX_]);
         if (! sl_result[LC_ALL_INDEX_]) {
             setlocale_failure = TRUE;
+
+            if (lc_all && strNE(lc_all, "")) {
+                /* when the env var LC_ALL is set then we can skip the setlocale
+                 *  for each individual category since that will just reuse that
+                 *  value. Which really means: they would all fail. */
+                skip_setlocale_categories = TRUE;
+            }
         }
         else {
             /* Since LC_ALL succeeded, it should have changed all the other
@@ -4688,11 +4697,19 @@ Perl_init_i18nl10n(pTHX_ int printwarn)
              * fail, whereas setting LC_ALL succeeds, leaving LC_COLLATE set to
              * the POSIX locale. */
             trial_locale = NULL;
+            skip_setlocale_categories = TRUE;
         }
 
 #  endif /* LC_ALL */
 
-        if (! setlocale_failure) {
+        if (! setlocale_failure || ! skip_setlocale_categories) {
+            /* The above condition doesn't really make sense. It will
+             * always evalaute to TRUE.
+             *
+             * Reason for adding it like this:
+             * - on blead `curlocales[]` is only used on failure
+             * - on khw's work-in-progress branch `curlocales[]` is used
+             *   on success. */
             unsigned int j;
             for (j = 0; j < NOMINAL_LC_ALL_INDEX; j++) {
                 curlocales[j] = stdized_setlocale(categories[j], trial_locale);
@@ -4702,10 +4719,10 @@ Perl_init_i18nl10n(pTHX_ int printwarn)
                 curlocales[j] = savepv(curlocales[j]);
                 DEBUG_LOCALE_INIT(j, trial_locale, curlocales[j]);
             }
+        }
 
-            if (LIKELY(! setlocale_failure)) {  /* All succeeded */
-                break;  /* Exit trial_locales loop */
-            }
+        if (LIKELY(! setlocale_failure)) {  /* All succeeded */
+            break;  /* Exit trial_locales loop */
         }
 
         /* Here, something failed; will need to try a fallback. */
@@ -4716,23 +4733,19 @@ Perl_init_i18nl10n(pTHX_ int printwarn)
 
             if (locwarn) { /* Output failure info only on the first one */
 
-#  ifdef LC_ALL
-
-                PerlIO_printf(Perl_error_log,
-                "perl: warning: Setting locale failed.\n");
-
-#  else /* !LC_ALL */
-
                 PerlIO_printf(Perl_error_log,
                 "perl: warning: Setting locale failed for the categories:\n");
 
-                for (j = 0; j < NOMINAL_LC_ALL_INDEX; j++) {
-                    if (! curlocales[j]) {
-                        PerlIO_printf(Perl_error_log, "\t%s\n", category_names[j]);
+                if (skip_setlocale_categories) {
+                    PerlIO_printf(Perl_error_log, "\tLC_ALL\n");
+                }
+                else {
+                    for (j = 0; j < NOMINAL_LC_ALL_INDEX; j++) {
+                        if (! curlocales[j]) {
+                            PerlIO_printf(Perl_error_log, "\t%s\n", category_names[j]);
+                        }
                     }
                 }
-
-#  endif /* LC_ALL */
 
                 PerlIO_printf(Perl_error_log,
                     "perl: warning: Please check that your locale settings:\n");
