@@ -33,7 +33,7 @@ void __cdecl _tmain(int argc, TCHAR *argv[])
         return;
     }
 
-    dwRet = GetFinalPathNameByHandle( hFile, Path, BUFSIZE, VOLUME_NAME_NT );
+    dwRet = GetFinalPathNameByHandleA( hFile, Path, BUFSIZE, VOLUME_NAME_NT );
     if(dwRet < BUFSIZE)
     {
         _tprintf(TEXT("\nThe final path is: %s\n"), Path);
