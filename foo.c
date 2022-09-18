@@ -24,7 +24,7 @@ void __cdecl _tmain(int argc, TCHAR *argv[])
                        FILE_SHARE_READ,       // share for reading
                        NULL,                  // default security
                        OPEN_EXISTING,         // existing file only
-                       FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, // normal file
+                       FILE_ATTRIBUTE_NORMAL, // normal file
                        NULL);                 // no attr. template
 
     if( hFile == INVALID_HANDLE_VALUE)
