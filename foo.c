@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <fileapi.h>
 #include <tchar.h>
 #include <stdio.h>
 
