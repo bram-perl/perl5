@@ -177,6 +177,8 @@ if ($define{USE_POSIX_2008_LOCALE} && ! $define{USE_QUERYLOCALE})
 
 if ($ARGS{PLATFORM} eq 'win32' && $define{USE_THREAD_SAFE_LOCALE})
 {
+    $define{USE_PL_CUR_LC_ALL} = 1;
+
     if ($cctype < 140) {
         $define{TS_W32_BROKEN_LOCALECONV} = 1;
     }
@@ -400,6 +402,7 @@ unless ($define{'USE_ITHREADS'}) {
 		    PL_stashpad
 		    PL_stashpadix
 		    PL_stashpadmax
+                    PL_veto_switch_non_tTHX_context
 		    Perl_alloccopstash
 		    Perl_allocfilegv
 		    Perl_clone_params_del
